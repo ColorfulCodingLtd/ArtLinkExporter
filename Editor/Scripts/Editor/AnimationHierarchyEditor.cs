@@ -421,6 +421,6 @@ namespace com.colorfulcoding.artlinkexporter
 			}
 		}
 	}
+}
 
 #endif
-}
