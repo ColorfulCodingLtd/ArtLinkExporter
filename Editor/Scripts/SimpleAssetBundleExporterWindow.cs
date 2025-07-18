@@ -16,6 +16,8 @@ namespace com.colorfulcoding.artlinkexporter
         public static void ShowWindow()
         {
             GetWindow<SimpleAssetBundleExporterWindow>(false, "ArtLink Exporter", true);
+
+            CheckBuildSupport();
         }
 
         private void OnEnable()
@@ -31,6 +33,29 @@ namespace com.colorfulcoding.artlinkexporter
         private void OnSelectionChanged()
         {
             Repaint();
+        }
+
+        private static void CheckBuildSupport()
+        {
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows))
+            {
+                Debug.LogError("Build support for Windows is not available. Please check your Unity installation. For now, Windows exports will be skipped.");
+            }else{
+                Debug.Log("Build support for Windows is available.");
+            }
+
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android, BuildTarget.Android)){
+                Debug.LogError("Build support for Android is not available. Please check your Unity installation.");
+            }else{
+                Debug.Log("Build support for Android is available.");
+            }
+
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.iOS, BuildTarget.iOS))
+            {
+                Debug.LogError("Build support for iOS is not available. Please check your Unity installation.");
+            }else{
+                Debug.Log("Build support for iOS is available.");
+            }
         }
 
         private void OnGUI()
@@ -155,6 +180,19 @@ namespace com.colorfulcoding.artlinkexporter
 
         private void BuildAssetBundles(UnityEngine.Object selectedObject)
         {
+            // Check mandatory build targets first
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android, BuildTarget.Android))
+            {
+                Debug.LogError("❌ Android build support is MANDATORY but not available. Please install Android Build Support in Unity Hub.");
+                return;
+            }
+
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.iOS, BuildTarget.iOS))
+            {
+                Debug.LogError("❌ iOS build support is MANDATORY but not available. Please install iOS Build Support in Unity Hub.");
+                return;
+            }
+
             string assetBundleDirectory = "AssetBundles";
 
             if (!Directory.Exists(assetBundleDirectory))
@@ -174,10 +212,21 @@ namespace com.colorfulcoding.artlinkexporter
             build.assetBundleName = assetBundleName;
             build.assetNames = assetPaths;
 
-            string winPath = assetBundleDirectory + "/win";
-            if (!Directory.Exists(winPath))
+            bool windowsSupported = BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows);
+            
+            if (windowsSupported)
             {
-                Directory.CreateDirectory(winPath);
+                string winPath = assetBundleDirectory + "/win";
+                if (!Directory.Exists(winPath))
+                {
+                    Directory.CreateDirectory(winPath);
+                }
+                Debug.Log("Building Windows Asset Bundle...");
+                BuildPipeline.BuildAssetBundles(winPath, new AssetBundleBuild[] { build }, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
+            }
+            else
+            {
+                Debug.LogWarning("⚠️ Windows build support not available. Skipping Windows Asset Bundle.");
             }
 
             string androidPath = assetBundleDirectory + "/android";
@@ -185,19 +234,19 @@ namespace com.colorfulcoding.artlinkexporter
             {
                 Directory.CreateDirectory(androidPath);
             }
+            Debug.Log("Building Android Asset Bundle...");
+            BuildPipeline.BuildAssetBundles(androidPath, new AssetBundleBuild[] { build }, BuildAssetBundleOptions.None, BuildTarget.Android);
 
             string iosPath = assetBundleDirectory + "/ios";
             if (!Directory.Exists(iosPath))
             {
                 Directory.CreateDirectory(iosPath);
             }
-
-            BuildPipeline.BuildAssetBundles(winPath, new AssetBundleBuild[] { build }, BuildAssetBundleOptions.None, BuildTarget.StandaloneWindows);
-            BuildPipeline.BuildAssetBundles(androidPath, new AssetBundleBuild[] { build }, BuildAssetBundleOptions.None, BuildTarget.Android);
+            Debug.Log("Building iOS Asset Bundle...");
             BuildPipeline.BuildAssetBundles(iosPath, new AssetBundleBuild[] { build }, BuildAssetBundleOptions.None, BuildTarget.iOS);
 
             Debug.Log("Postprocessing...");
-            CleanupAfterBuild(selectedObject);
+            CleanupAfterBuild(selectedObject, windowsSupported);
             Debug.Log("Build finished!");
 
             // Open the AssetBundles folder
@@ -224,7 +273,7 @@ namespace com.colorfulcoding.artlinkexporter
             }
         }
 
-        private void CleanupAfterBuild(UnityEngine.Object selectedObject)
+        private void CleanupAfterBuild(UnityEngine.Object selectedObject, bool windowsSupported)
         {
             string assetBundleDirectory = "AssetBundles";
             if (!Directory.Exists(assetBundleDirectory))
@@ -233,41 +282,54 @@ namespace com.colorfulcoding.artlinkexporter
                 return;
             }
 
-            string winPath = assetBundleDirectory + "/win";
-            if (!Directory.Exists(winPath))
+            string filename = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(selectedObject)).assetBundleName;
+
+            // Handle Windows build cleanup
+            if (windowsSupported)
             {
-                Debug.LogWarning("Windows build not present!");
+                string winPath = assetBundleDirectory + "/win";
+                if (Directory.Exists(winPath))
+                {
+                    File.Move(winPath + "/" + filename, assetBundleDirectory + "/" + filename + "-Win");
+                    Directory.Delete(winPath, true);
+                }
+                else
+                {
+                    Debug.LogWarning("Windows build not present!");
+                }
             }
 
+            // Handle Android build cleanup (mandatory)
             string androidPath = assetBundleDirectory + "/android";
-            if (!Directory.Exists(androidPath))
+            if (Directory.Exists(androidPath))
+            {
+                File.Move(androidPath + "/" + filename, assetBundleDirectory + "/" + filename + "-Android");
+                Directory.Delete(androidPath, true);
+            }
+            else
             {
                 Debug.LogWarning("Android build not present!");
             }
 
+            // Handle iOS build cleanup (mandatory)
             string iosPath = assetBundleDirectory + "/ios";
-            if (!Directory.Exists(iosPath))
+            if (Directory.Exists(iosPath))
             {
-                Debug.LogWarning("IOS build not present!");
+                try
+                {
+                    File.Move(iosPath + "/" + filename, assetBundleDirectory + "/" + filename + "-IOS");
+                    Directory.Delete(iosPath, true);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogWarning("No iOS module installed?");
+                    Debug.LogWarning(e);
+                }
             }
-
-            string filename = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(selectedObject)).assetBundleName;
-
-            File.Move(winPath + "/" + filename, assetBundleDirectory + "/" + filename + "-Win");
-            File.Move(androidPath + "/" + filename, assetBundleDirectory + "/" + filename + "-Android");
-            try
+            else
             {
-                File.Move(iosPath + "/" + filename, assetBundleDirectory + "/" + filename + "-IOS");
+                Debug.LogWarning("iOS build not present!");
             }
-            catch (System.Exception e)
-            {
-                Debug.LogWarning("No iOS module installed?");
-                Debug.LogWarning(e);
-            }
-
-            Directory.Delete(winPath, true);
-            Directory.Delete(androidPath, true);
-            Directory.Delete(iosPath, true);
         }
     }
 }
