@@ -1,0 +1,12 @@
+{
+    "name": "com.colorfulcoding.artlinkexporter",
+    "version": "0.0.1",
+    "displayName": "ArtLink Exporter",
+    "description": "Unity package for exporting bundles that can be understood by ArtLink AR App.",
+    "unity": "2022.3",
+    "author": {
+        "name": "ColorfulCoding"
+    },
+    "dependencies": {
+    }
+}

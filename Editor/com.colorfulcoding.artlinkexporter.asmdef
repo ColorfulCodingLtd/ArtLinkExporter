@@ -1,0 +1,14 @@
+{
+    "name": "com.colorfulcoding.artlinkexporter",
+    "rootNamespace": "com.colorfulcoding.artlinkexporter",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
