@@ -8,5 +8,6 @@
         "name": "ColorfulCoding"
     },
     "dependencies": {
+        "com.unity.render-pipelines.universal":"14.0.9"
     }
 }
