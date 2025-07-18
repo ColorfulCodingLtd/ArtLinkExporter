@@ -12,7 +12,7 @@ namespace com.colorfulcoding.artlinkexporter
         private bool newSelection = false;
         private Object previousSelection = null;
 
-        [MenuItem("ArtLink Exporter/ArtLink Exporter")]
+        [MenuItem("ArtLink Exporter/ArtLink Exporter", false, 1)]
         public static void ShowWindow()
         {
             GetWindow<SimpleAssetBundleExporterWindow>(false, "ArtLink Exporter", true);
