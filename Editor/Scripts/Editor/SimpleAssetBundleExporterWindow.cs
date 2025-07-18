@@ -61,7 +61,34 @@ namespace com.colorfulcoding.artlinkexporter
                     filename = AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(selectedObject)).assetBundleName;
                 }
 
-                filename = EditorGUILayout.TextField("AssetBundle Name", filename);
+                string newFilename = EditorGUILayout.TextField("AssetBundle Name", filename);
+                
+                // Validate filename to only allow alphanumeric characters, hyphens, and underscores
+                if (newFilename != filename)
+                {
+                    // Remove special characters and spaces, keep only alphanumeric, hyphens, and underscores
+                    string cleanFilename = System.Text.RegularExpressions.Regex.Replace(newFilename, @"[^a-zA-Z0-9\-_]", "");
+                    
+                    // Ensure it doesn't start with a number or hyphen
+                    if (cleanFilename.Length > 0 && (char.IsDigit(cleanFilename[0]) || cleanFilename[0] == '-'))
+                    {
+                        cleanFilename = "asset_" + cleanFilename;
+                    }
+                    
+                    // Ensure it's not empty
+                    if (string.IsNullOrEmpty(cleanFilename))
+                    {
+                        cleanFilename = "asset";
+                    }
+                    
+                    filename = cleanFilename;
+                    
+                    // Show warning if the input was modified
+                    if (newFilename != cleanFilename)
+                    {
+                        EditorGUILayout.HelpBox("Special characters and spaces are not allowed. Only letters, numbers, hyphens, and underscores are permitted.", MessageType.Warning);
+                    }
+                }
 
                 EditorGUILayout.Space();
                 EditorGUILayout.Space();
@@ -82,7 +109,7 @@ namespace com.colorfulcoding.artlinkexporter
                     // Export Assets button - black background, white text with accent
                     GUI.backgroundColor = Color.black;
                     GUI.contentColor = Color.white;
-                    if (GUILayout.Button("🚀 Export Assets", GUILayout.Width(140), GUILayout.Height(40)))
+                    if (GUILayout.Button("🚀 Export Asset Bundles", GUILayout.Width(140), GUILayout.Height(40)))
                     {
                         Debug.Log($"Exporting {filename}...");
                         BuildAssetBundles(selectedObject);
@@ -104,8 +131,26 @@ namespace com.colorfulcoding.artlinkexporter
 
         private void UpdateNameAndAssetName(string objectPath, string newName)
         {
-            AssetImporter.GetAtPath(objectPath).SetAssetBundleNameAndVariant(newName, "");
-            AssetDatabase.RenameAsset(objectPath, newName);
+            // Clean the name before setting it
+            string cleanName = System.Text.RegularExpressions.Regex.Replace(newName, @"[^a-zA-Z0-9\-_]", "");
+            
+            // Ensure it doesn't start with a number or hyphen
+            if (cleanName.Length > 0 && (char.IsDigit(cleanName[0]) || cleanName[0] == '-'))
+            {
+                cleanName = "asset_" + cleanName;
+            }
+            
+            // Ensure it's not empty
+            if (string.IsNullOrEmpty(cleanName))
+            {
+                cleanName = "asset";
+            }
+            
+            AssetImporter.GetAtPath(objectPath).SetAssetBundleNameAndVariant(cleanName, "");
+            AssetDatabase.RenameAsset(objectPath, cleanName);
+            
+            // Update the filename field to reflect the cleaned name
+            filename = cleanName;
         }
 
         private void BuildAssetBundles(UnityEngine.Object selectedObject)
