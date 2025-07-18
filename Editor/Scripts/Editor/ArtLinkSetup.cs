@@ -23,7 +23,7 @@ namespace com.colorfulcoding.artlinkexporter
             if (urpAsset == null)
             {
                 Debug.Log($"URP Asset not in Assets. Looking in packages...");
-                urpAssetPath = "Packages/ArtLink Exporter/Editor/Rendering/ArtLinkURPAsset.asset";
+                urpAssetPath = "Packages/com.colorfulcoding.artlinkexporter/Editor/Rendering/ArtLinkURPAsset.asset";
                 urpAsset = AssetDatabase.LoadAssetAtPath<RenderPipelineAsset>(urpAssetPath);
 
                 if (urpAsset == null)
